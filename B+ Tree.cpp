@@ -27,6 +27,7 @@ void instr() {
 struct node {
     int sz=0, szp=0;
     int val[MAXN+3];
+    int leaf[MAXN+3];
     node* ptr[MAXN+3];
     node* par;
     node* sibling;
@@ -49,6 +50,12 @@ struct node {
         val[in] = x;
         sz++;
     }
+    void insertLeaf(int in,int x)
+    {
+        for(int i=sz-1; i>=in; i--) leaf[i+1] = leaf[i];
+        leaf[in] = x;
+        sz++;
+    }
     void insertPtr(int in, node* p) {
         for(int i=szp-1; i>=in; i--) {
             ptr[i]->parPtrID++;
@@ -65,9 +72,16 @@ struct node {
     void pushBackPtr(node* p) {
         ptr[szp++] = p;
     }
+    void pushBackLeaf(int x) {
+        leaf[sz++] = x;
+    }
 
     void eraseVal(int in) {
         for(int i=in+1; i<sz; i++) val[i-1] = val[i];
+        sz--;
+    }
+    void eraseLeaf(int in) {
+        for(int i=in+1; i<sz; i++) leaf[i-1] = leaf[i];
         sz--;
     }
     void erasePtr(int in) {
@@ -81,18 +95,25 @@ struct node {
     void reversePtr() {
         reverse(ptr, ptr+szp);
     }
+    void reverseLeaf()
+    {
+        reverse(leaf, leaf+sz);
+    }
 
-    void insert(int x) {
+    void insert(int x,int y) {
         int iny=0;
         while(iny < sz) {
             if(x < val[iny]) break;
             iny++;
         }
 
-        if(isLeaf) insertVal(iny, x);
+        if(isLeaf)
+        {
+            insertVal(iny, x);
+            insertLeaf(iny,y);
+        } 
         else {
-//            cout << "INS " << iny << endl;
-            ptr[iny]->insert(x);
+            ptr[iny]->insert(x,y);
         }
 
         if(sz == MAXN) split();
@@ -104,6 +125,7 @@ struct node {
         sibling = splitedNode;
 
         while(sz > MAXN/2) {
+            splitedNode->pushBackLeaf(leaf[sz-1]);
             splitedNode->pushBackVal(val[sz-1]);
             sz--; ///val.pp();
         }
@@ -112,6 +134,7 @@ struct node {
             szp--; ///ptr.pp();
         }
         splitedNode->reverseVal();
+        splitedNode->reverseLeaf();
         splitedNode->reversePtr();
         for(int i=0; i<splitedNode->szp; i++) {
             splitedNode->ptr[i]->parPtrID = i;
@@ -133,11 +156,15 @@ struct node {
 
         ///handle parent er majhkhane insert
         par->insertVal(parPtrID, splitedNode->val[0]);
+        // par->insertLeaf(parPtrID, splitedNode->leaf[0]);
         par->insertPtr(parPtrID+1, splitedNode);
 
         ///handle leaf na hoile split thk 0 er ta delete
-        if(!isLeaf) splitedNode->eraseVal(0);
-
+        if(!isLeaf) 
+        {
+            splitedNode->eraseVal(0);
+            // splitedNode->eraseLeaf(0);
+        }
 //        cout << "AFTER SPLIT" << endl;
 //        for(int i=0; i<sz; i++) cout << val[i] << ' ' ; cout << endl;
 //        for(int i=0; i<splitedNode->sz; i++) cout << splitedNode->val[i] << ' ' ; cout << endl;
@@ -274,7 +301,7 @@ int main() {
 //            printf("%d\n", x);
 //            getchar();
 
-            tree->insert(x);
+            tree->insert(x,1);
             while(tree->par != NULL) {
                 tree = tree->par;
             }
